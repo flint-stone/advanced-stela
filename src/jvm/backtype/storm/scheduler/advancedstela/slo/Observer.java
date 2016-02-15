@@ -28,11 +28,13 @@ public class Observer {
     private Topologies topologies;
     private NimbusClient nimbusClient;
     private File juice_log;
+    private File observer_log;
 
     public Observer(Map conf) {
         config = conf;
         topologies = new Topologies(config);
         juice_log = new File("/tmp/output.log");
+        observer_log = new File("/tmp/result.log");
     }
 
     public TopologyPairs getTopologiesToBeRescaled() {
@@ -264,6 +266,7 @@ public class Observer {
 
           //  writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
             writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
+            writeToFile(observer_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
         }
 
     }

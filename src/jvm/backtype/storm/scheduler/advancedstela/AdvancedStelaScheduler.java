@@ -31,11 +31,13 @@ public class AdvancedStelaScheduler implements IScheduler {
     private File juice_log;
     private File advanced_scheduling_log;
     private File slo_log;
+    private File observer_log;
 
     public void prepare(@SuppressWarnings("rawtypes") Map conf) {
         juice_log = new File("/tmp/output.log");
         advanced_scheduling_log = new File("/tmp/advanced_scheduling_log.log");
         slo_log = new File("/tmp/slo.log");
+        observer_log = new File("/tmp/result.log");
 
         config = conf;
         sloObserver = new Observer(conf);
@@ -220,7 +222,11 @@ public class AdvancedStelaScheduler implements IScheduler {
                     writeToFile(juice_log, victimCommand + "\n");
                     writeToFile(advanced_scheduling_log, "New parallelism hint for target: " + target.getComponents().get(targetComponent).getParallelism() + "\n");
                     writeToFile(advanced_scheduling_log, "New parallelism hint for victim: " + victim.getComponents().get(victimComponent).getParallelism() + "\n");
-
+                    
+                    writeToFile(observer_log, targetCommand + "\n");
+                    writeToFile(observer_log, System.currentTimeMillis() + "\n");
+                    writeToFile(observer_log, victimCommand + "\n");
+                    
                     Runtime.getRuntime().exec(targetCommand);
                     Runtime.getRuntime().exec(victimCommand);
 

@@ -214,7 +214,7 @@ public class Observer {
                             stelaComponent.addSpoutTransfer(source,
                                     value * bolt.getSpoutTransfer().get(source));
 
-                            writeToFile(juice_log, topologyId + "," +  bolt.getId() + "," + currentTransferred + "," + executed + "," + value + "\n");
+                            writeToFile(juice_log, topologyId + "," +  stelaComponent.getId() + "," + currentTransferred + "," + executed + "," + source + "," + stelaComponent.getSpoutTransfer().get(source) + "\n");
 
                         }
                         children.put(stelaComponent.getId(), stelaComponent);
@@ -241,6 +241,7 @@ public class Observer {
             for (Component bolt : topology.getBolts().values()) {
                 if (bolt.getChildren().isEmpty()) {
                     for (Double sourceProportion : bolt.getSpoutTransfer().values()) {
+                    	writeToFile(juice_log, bolt.getId() +  ": source proportion: " +sourceProportion+ "\n");
                         calculatedSLO += sourceProportion;
                     }
                 }

@@ -11,7 +11,7 @@ import org.json.simple.parser.ParseException;
 import java.util.*;
 
 public class Topologies {
-    private static final Integer UP_TIME = 5*60;
+    private static final Integer UP_TIME = 60;
     private static final Integer REBALANCING_INTERVAL = 180;
 
     private Map config;

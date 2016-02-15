@@ -213,7 +213,10 @@ public class Observer {
                         
                         for (String source : bolt.getSpoutTransfer().keySet()) {
                         	writeToFile(juice_log, "before calculation" + topologyId + "," +  stelaComponent.getId() + "," + value + ","  + source + "," + bolt.getSpoutTransfer().get(source) + "\n");
-                            stelaComponent.addSpoutTransfer(source, value * bolt.getSpoutTransfer().get(source));
+                        	if(stelaComponent.getSpoutTransfer().get(source)!=null){
+                        		writeToFile(juice_log, "!!!spouttranfser is not null:" + stelaComponent.getSpoutTransfer().get(source));
+                        	}
+                        	stelaComponent.addSpoutTransfer(source, value * bolt.getSpoutTransfer().get(source));
 
                             writeToFile(juice_log, topologyId + "," +  stelaComponent.getId() + "," + currentTransferred + "," + executed + "," + source + "," + stelaComponent.getSpoutTransfer().get(source) + "\n");
 

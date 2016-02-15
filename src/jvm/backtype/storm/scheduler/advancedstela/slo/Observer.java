@@ -44,7 +44,6 @@ public class Observer {
         writeToFile(juice_log, "Running observer at: " + System.currentTimeMillis() + "\n");
         if (config != null) {
             try {
-            	topologies = new Topologies(config);
                 nimbusClient = new NimbusClient(config, (String) config.get(Config.NIMBUS_HOST));
      
                 topologies.constructTopologyGraphs();

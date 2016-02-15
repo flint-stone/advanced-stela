@@ -178,7 +178,7 @@ public class Observer {
                     } else {
                         value = ((double) executed) / (double) currentTransferred;
                     }
-                    writeToFile(juice_log, topologyId + "," + spout.getId() + "," + currentTransferred + "," + executed + "," + value + "\n");
+                    writeToFile(juice_log, topologyId + "," +  component.getId() + "," + currentTransferred + "," + executed + "," + value + "\n");
 
                     component.addSpoutTransfer(spout.getId(), value);
                     parents.put(child, component);
@@ -208,11 +208,12 @@ public class Observer {
                         } else {
                             value = ((double) executed) / (double) currentTransferred;
                         }
-
-
+                        
+                        
+                        
                         for (String source : bolt.getSpoutTransfer().keySet()) {
-                            stelaComponent.addSpoutTransfer(source,
-                                    value * bolt.getSpoutTransfer().get(source));
+                        	writeToFile(juice_log, "before calculation" + topologyId + "," +  stelaComponent.getId() + "," + value + ","  + source + "," + bolt.getSpoutTransfer().get(source) + "\n");
+                            stelaComponent.addSpoutTransfer(source, value * bolt.getSpoutTransfer().get(source));
 
                             writeToFile(juice_log, topologyId + "," +  stelaComponent.getId() + "," + currentTransferred + "," + executed + "," + source + "," + stelaComponent.getSpoutTransfer().get(source) + "\n");
 

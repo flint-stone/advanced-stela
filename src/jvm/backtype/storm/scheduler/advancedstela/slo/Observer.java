@@ -31,7 +31,7 @@ public class Observer {
 
     public Observer(Map conf) {
         config = conf;
-        topologies = new Topologies(config);
+        //topologies = new Topologies(config);
         juice_log = new File("/tmp/output.log");
     }
 
@@ -45,6 +45,7 @@ public class Observer {
         if (config != null) {
             try {
                 nimbusClient = new NimbusClient(config, (String) config.get(Config.NIMBUS_HOST));
+                topologies = new Topologies(config);
                 topologies.constructTopologyGraphs();
                 HashMap<String, Topology> allTopologies = topologies.getStelaTopologies();
 

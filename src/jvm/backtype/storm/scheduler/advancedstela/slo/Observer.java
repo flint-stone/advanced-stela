@@ -29,6 +29,7 @@ public class Observer {
     private NimbusClient nimbusClient;
     private File juice_log;
     private File observer_log;
+    private File avg_juice_log;
 
     public Observer(Map conf) {
         config = conf;
@@ -267,6 +268,8 @@ public class Observer {
           //  writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
             writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
             writeToFile(observer_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
+            avg_juice_log = new File("/tmp/"+topology.getId()+".log");
+            writeToFile(avg_juice_log, topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
         }
 
     }

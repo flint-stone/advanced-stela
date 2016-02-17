@@ -69,7 +69,7 @@ public class Topologies {
         if (config != null) {
             try {
                 nimbusClient = new NimbusClient(config, (String) config.get(Config.NIMBUS_HOST));
-                stelaTopologies = new HashMap<String, Topology>();
+                //stelaTopologies = new HashMap<String, Topology>();
                 List<TopologySummary> topologies = nimbusClient.getClient().getClusterInfo().get_topologies();
 
                 for (TopologySummary topologySummary : topologies) {

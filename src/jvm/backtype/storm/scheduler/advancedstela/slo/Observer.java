@@ -51,8 +51,8 @@ public class Observer {
      
                 topologies.constructTopologyGraphs();
                 HashMap<String, Topology> allTopologies = topologies.getStelaTopologies();
-
-                collectStatistics(allTopologies);
+                cleanUpSLOMap(allTopologies);
+                collectStatistics(allTopologies);     
                 calculateJuicePerSource(allTopologies);
                 logFinalSourceJuicesPer(allTopologies);
 
@@ -62,7 +62,22 @@ public class Observer {
         }
     }
 
-    private void collectStatistics(HashMap<String, Topology> allTopologies) {
+    private void cleanUpSLOMap(HashMap<String, Topology> allTopologies) {
+		// TODO Auto-generated method stub
+    	 for (String topologyId : allTopologies.keySet()) {
+             Topology topology = allTopologies.get(topologyId);
+             HashMap<String, Component> spouts = topology.getSpouts();
+             for (Component spout : spouts.values()) {
+            	 spout.setSpoutTransfer();
+             }
+             HashMap<String, Component> bolts = topology.getBolts();
+             for (Component bolt : bolts.values()) {
+            	 bolt.setSpoutTransfer();
+             }
+    	 }
+	}
+
+	private void collectStatistics(HashMap<String, Topology> allTopologies) {
         for (String topologyId : allTopologies.keySet()) {
             Topology topology = allTopologies.get(topologyId);
             TopologyInfo topologyInfo = null;
@@ -269,7 +284,7 @@ public class Observer {
             writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
             writeToFile(observer_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
             avg_juice_log = new File("/tmp/"+topology.getId()+".log");
-            writeToFile(avg_juice_log, topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
+            writeToFile(avg_juice_log, System.currentTimeMillis() + "," + topology.getMeasuredSLO() + "\n");
         }
 
     }

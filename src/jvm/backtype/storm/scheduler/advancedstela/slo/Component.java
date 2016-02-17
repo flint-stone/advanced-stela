@@ -77,6 +77,9 @@ public class Component {
         return spoutTransfer;
     }
 
+    public void setSpoutTransfer() {
+    	spoutTransfer = new HashMap<String, Double>();
+    }
     public void addSpoutTransfer(String key, Double value) {
     	if(spoutTransfer.get(key)==null){
     		spoutTransfer.put(key, value);

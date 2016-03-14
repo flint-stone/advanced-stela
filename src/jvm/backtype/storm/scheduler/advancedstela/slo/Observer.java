@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.*;
+
 
 public class Observer {
     private static final Logger LOG = LoggerFactory.getLogger(Observer.class);
@@ -28,11 +30,14 @@ public class Observer {
     private Topologies topologies;
     private NimbusClient nimbusClient;
     private File juice_log;
+    private File flatline_log, outlier_log;
 
     public Observer(Map conf) {
         config = conf;
         topologies = new Topologies(config);
         juice_log = new File("/tmp/output.log");
+        outlier_log = new File("/tmp/outlier.log");
+        flatline_log = new File("/tmp/flat_line.log");
     }
 
     public TopologyPairs getTopologiesToBeRescaled() {
@@ -42,18 +47,51 @@ public class Observer {
     public void run() {
        // LOG.info("Running observer at: " + System.currentTimeMillis() / 1000);
         writeToFile(juice_log, "Running observer at: " + System.currentTimeMillis() + "\n");
+
         if (config != null) {
             try {
                 nimbusClient = new NimbusClient(config, (String) config.get(Config.NIMBUS_HOST));
+
                 topologies.constructTopologyGraphs();
                 HashMap<String, Topology> allTopologies = topologies.getStelaTopologies();
+                writeToFile(flatline_log, "********* CLUSTER INFO: **********\n" + "NUMBER OF TOPOLOGIES: " + nimbusClient.getClient().getClusterInfo().get_topologies().size() + "\n"
+                        + "NUMBER OF SUPERVISORS: " + nimbusClient.getClient().getClusterInfo().get_supervisors_size() + "\n"
+                        + "NIMBUS UPTIME: " + nimbusClient.getClient().getClusterInfo().get_nimbus_uptime_secs() + "\n");
+                Iterator <SupervisorSummary> supervisorSummaryIterator = nimbusClient.getClient().getClusterInfo().get_supervisors_iterator();
+                while (supervisorSummaryIterator.hasNext())
+                {
+                    SupervisorSummary ss = supervisorSummaryIterator.next();
+                    writeToFile(flatline_log, "SUPERVISOR ID: " + ss.get_supervisor_id() +"\n"
+                            + "SUPERVISOR HOST: " + ss.get_host() + "\n"
+                            + "SUPERVISOR USED WORKERS" + ss.get_num_used_workers() + "\n"
+                            + "SUPERVISOR GET NUMBER OF TOTAL WORKERS" + ss.get_num_workers() + "\n"
+                            + "SUPERVISOR GET UPTIME SECS" + ss.get_uptime_secs() + "\n");
+                }
+
+
+                cleanUpSLOMap(allTopologies); // To remove old spout values :D
 
                 collectStatistics(allTopologies);
                 calculateJuicePerSource(allTopologies);
                 logFinalSourceJuicesPer(allTopologies);
 
-            } catch (TTransportException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    private void cleanUpSLOMap(HashMap<String, Topology> allTopologies) {
+        // TODO Auto-generated method stub
+        for (String topologyId : allTopologies.keySet()) {
+            Topology topology = allTopologies.get(topologyId);
+            HashMap<String, Component> spouts = topology.getSpouts();
+            for (Component spout : spouts.values()) {
+                spout.resetSpoutTransfer();
+            }
+            HashMap<String, Component> bolts = topology.getBolts();
+            for (Component bolt : bolts.values()) {
+                bolt.resetSpoutTransfer();
             }
         }
     }
@@ -129,6 +167,8 @@ public class Observer {
                         temporaryExecuted.get(componentId).put(streamId.get_componentId(),
                                 temporaryExecuted.get(componentId).get(streamId.get_componentId()) +
                                         executedStatValues.get(streamId).intValue());
+
+                        writeToFile(outlier_log, topologyId + "," + componentId + "," + executedStatValues.get(streamId).intValue() + "\n");
                     }
                 }
             }
@@ -178,7 +218,7 @@ public class Observer {
                     } else {
                         value = ((double) executed) / (double) currentTransferred;
                     }
-                    writeToFile(juice_log, topologyId + "," + spout.getId() + "," + currentTransferred + "," + executed + "," + value + "\n");
+                    writeToFile(outlier_log, topologyId + "," + spout.getId() + "," + currentTransferred + "," + executed + "," + value + "\n");
 
                     component.addSpoutTransfer(spout.getId(), value);
                     parents.put(child, component);
@@ -194,7 +234,7 @@ public class Observer {
                     for (String child : boltChildren) {
                         Component stelaComponent = topology.getAllComponents().get(child);
 
-                     Integer currentTransferred = bolt.getCurrentTransferred();
+                        Integer currentTransferred = bolt.getCurrentTransferred();
                         Integer executed = stelaComponent.getCurrentExecuted().get(bolt.getId());
 
 
@@ -214,7 +254,7 @@ public class Observer {
                             stelaComponent.addSpoutTransfer(source,
                                     value * bolt.getSpoutTransfer().get(source));
 
-                            writeToFile(juice_log, topologyId + "," +  bolt.getId() + "," + currentTransferred + "," + executed + "," + value + "\n");
+                            writeToFile(outlier_log, topologyId + "," + bolt.getId() + "," + currentTransferred + "," + executed + "," + value + "\n");
 
                         }
                         children.put(stelaComponent.getId(), stelaComponent);
@@ -224,40 +264,40 @@ public class Observer {
                 parents = children;
             }
         }
-      //  System.out.println("End of bolts ");
-      //  System.out.println("\n\n\n\n\n");
 
     }
 
     private void logFinalSourceJuicesPer(HashMap<String, Topology> allTopologies) {
-        LOG.info("**************************************************************************************************");
+
 
         for (String topologyId : allTopologies.keySet()) {
             Double calculatedSLO = 0.0;
             Topology topology = allTopologies.get(topologyId);
 
-            LOG.info("User specified SLO for topology {} is {}", topologyId, topology.getUserSpecifiedSLO());
+            int spouts_transferred = 0;
+            int sink_executed = 0;
+
+            for (Map.Entry <String, Component> spout : topology.getSpouts().entrySet())
+            {
+                spouts_transferred += spout.getValue().getCurrentTransferred();
+            }
 
             for (Component bolt : topology.getBolts().values()) {
                 if (bolt.getChildren().isEmpty()) {
                     for (Double sourceProportion : bolt.getSpoutTransfer().values()) {
                         calculatedSLO += sourceProportion;
                     }
+                    for (Integer boltExecuted : bolt.getCurrentExecuted().values()) {
+                        sink_executed += boltExecuted;
+                    }
                 }
             }
 
             calculatedSLO = calculatedSLO / topology.getSpouts().size();
             topology.setMeasuredSLOs(calculatedSLO);
-            LOG.info("Measured SLO for topology {} for this run is {} and average slo is {}.", topologyId, calculatedSLO,
-                    topology.getMeasuredSLO());
-            LOG.info("**************************************************************************************************");
-            //System.out.println("**************************************************************************************************");
-            //System.out.println("Measured SLO for topology " + topologyId + " for this run is " + calculatedSLO + " and average slo is " +
-            //        topology.getMeasuredSLO());
-            //System.out.println("**************************************************************************************************");
-
-          //  writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
-            writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
+            writeToFile(juice_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + spouts_transferred + "," + sink_executed + "," + System.currentTimeMillis() + "\n");
+            writeToFile(outlier_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
+            writeToFile(flatline_log, topologyId + "," + calculatedSLO + "," + topology.getMeasuredSLO() + "," + System.currentTimeMillis() + "\n");
         }
 
     }
@@ -273,9 +313,8 @@ public class Observer {
             bufferWritter.append(data);
             bufferWritter.close();
             fileWritter.close();
-            LOG.info("wrote to slo file {}",  data);
         } catch (IOException ex) {
-            LOG.info("error! writing to file {}", ex);
+          System.out.println(ex.toString());
         }
     }
 

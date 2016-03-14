@@ -307,16 +307,11 @@ public class AdvancedStelaScheduler implements IScheduler {
     private void reassignTargetNewScheduling(TopologyDetails target, Cluster cluster,
                                              ExecutorPair executorPair) {
 
-<<<<<<< HEAD
-    	LOG.info("+++++++++++++++Reassign Target New Scheduling: {}+++++++++++++++++++++++", target.getName());
-        writeToFile(advanced_scheduling_log, "Only the target topology needs to be rescheduled. That's more normal :D ");
-=======
 
 
         writeToFile(flatline_log, "Reassign Target New Scheduling:  "  + target.getName() + "\n");
 
 
->>>>>>> 8285af02a63b4d01c5d86cfcc521e5bfa5340a9d
         ExecutorSummary targetExecutorSummary = executorPair.getTargetExecutorSummary();
 
         WorkerSlot targetSlot = new WorkerSlot(targetExecutorSummary.get_host(), targetExecutorSummary.get_port());
@@ -381,79 +376,77 @@ public class AdvancedStelaScheduler implements IScheduler {
 	private void reassignVictimNewScheduling(TopologyDetails victim, Cluster cluster,
                                              ExecutorPair executorPair) {
 
+       // writeToFile(advanced_scheduling_log, "Only the victim topology needs to be rescheduled. Woot, we made it to stage II");
 
-		// writeToFile(advanced_scheduling_log, "Only the victim topology needs to be rescheduled. Woot, we made it to stage II");
+        writeToFile(flatline_log, "Reassign Victim New Scheduling:  " + victim.getName() + "\n");
 
-    writeToFile(flatline_log, "Reassign Victim New Scheduling:  " + victim.getName() + "\n");
+        Map<WorkerSlot, ArrayList<ExecutorDetails>> victimSchedule = globalState.getTopologySchedules().get(victim.getId()).getAssignment();
+        ExecutorSummary victimExecutorSummary = executorPair.getVictimExecutorSummary();
+        WorkerSlot victimSlot = new WorkerSlot(victimExecutorSummary.get_host(), victimExecutorSummary.get_port());
+        writeToFile(flatline_log, "Victim Worker Slot: "  +  victimSlot.toString() + " \n");
+        writeToFile(flatline_log, "slot for Victim: " + victimSlot.toString() + "\n");
+      //  writeToFile(advanced_scheduling_log, "\n************** Victim Topology **************\n");
+        Set<ExecutorDetails> previousVictimExecutors = globalState.getTopologySchedules().get(victim.getId()).getExecutorToComponent().keySet();
+        SchedulerAssignment currentVictimAssignment = cluster.getAssignmentById(victim.getId());
+        writeToFile(flatline_log, "Current Victim Assignment: \n");
+        printSchedule(currentVictimAssignment);
+        ArrayList<Integer> previousVictimTasks = new ArrayList<Integer>();
+        ArrayList<Integer> otherTaskofVictimExecutor = new ArrayList<Integer>();
+        for (ExecutorDetails executorDetails : previousVictimExecutors) {
+            previousVictimTasks.add(executorDetails.getStartTask());
+            previousVictimTasks.add(executorDetails.getEndTask());
+        }
 
-	Map<WorkerSlot, ArrayList<ExecutorDetails>> victimSchedule = globalState.getTopologySchedules().get(victim.getId()).getAssignment();
-	ExecutorSummary victimExecutorSummary = executorPair.getVictimExecutorSummary();
-	WorkerSlot victimSlot = new WorkerSlot(victimExecutorSummary.get_host(), victimExecutorSummary.get_port());
-	writeToFile(flatline_log, "Victim Worker Slot: "  +  victimSlot.toString() + " \n");
-	writeToFile(flatline_log, "slot for Victim: " + victimSlot.toString() + "\n");
-	//  writeToFile(advanced_scheduling_log, "\n************** Victim Topology **************\n");
-	Set<ExecutorDetails> previousVictimExecutors = globalState.getTopologySchedules().get(victim.getId()).getExecutorToComponent().keySet();
-	SchedulerAssignment currentVictimAssignment = cluster.getAssignmentById(victim.getId());
-	writeToFile(flatline_log, "Current Victim Assignment: \n");
-	printSchedule(currentVictimAssignment);
-	ArrayList<Integer> previousVictimTasks = new ArrayList<Integer>();
-	ArrayList<Integer> otherTaskofVictimExecutor = new ArrayList<Integer>();
-	for (ExecutorDetails executorDetails : previousVictimExecutors) {
-	    previousVictimTasks.add(executorDetails.getStartTask());
-	    previousVictimTasks.add(executorDetails.getEndTask());
-	}
-	
-	if (currentVictimAssignment != null) {
-	    Set<ExecutorDetails> currentVictimExecutors = currentVictimAssignment.getExecutorToSlot().keySet();
-	    ArrayList<Integer> currentVictimTasks = new ArrayList<Integer>();
-	    for (ExecutorDetails executorDetails : currentVictimExecutors) {
-	        currentVictimTasks.add(executorDetails.getStartTask());
-	        currentVictimTasks.add(executorDetails.getEndTask());
-	    }
-	
-	    previousVictimExecutors.removeAll(currentVictimExecutors);
-	    previousVictimTasks.removeAll(currentVictimTasks);
-	
-	    for (Map.Entry<WorkerSlot, ArrayList<ExecutorDetails>> topologyEntry : victimSchedule.entrySet()) {
-	
-	        for (Integer removedTasks : previousVictimTasks) {
-	
-	            ArrayList<ExecutorDetails> oldExecutors = topologyEntry.getValue();
-	            Iterator iterator = oldExecutors.iterator();
-	
-	            while (iterator.hasNext()) {
-	                ExecutorDetails oldExecutor = (ExecutorDetails) iterator.next();
-	                if (removedTasks == oldExecutor.getStartTask()) {
-	                    otherTaskofVictimExecutor.add(oldExecutor.getEndTask());
-	                    iterator.remove();
-	                } else if (removedTasks == oldExecutor.getEndTask()) {
-	                    otherTaskofVictimExecutor.add(oldExecutor.getStartTask());
-	                    iterator.remove();
-	                }
-	            }
-	            victimSchedule.put(topologyEntry.getKey(), oldExecutors);
-	        }
-	    }
-	
-	    for (Map.Entry<ExecutorDetails, WorkerSlot> topologyEntry : currentVictimAssignment.getExecutorToSlot().entrySet()) {
-	        for (Integer taskToAddBack : otherTaskofVictimExecutor) {
-	            if (taskToAddBack == topologyEntry.getKey().getStartTask() || taskToAddBack == topologyEntry.getKey().getEndTask()) {
-	                victimSchedule.get(victimSlot).add(topologyEntry.getKey());
-	            }
-	        }
-	    }
-}
+        if (currentVictimAssignment != null) {
+            Set<ExecutorDetails> currentVictimExecutors = currentVictimAssignment.getExecutorToSlot().keySet();
+            ArrayList<Integer> currentVictimTasks = new ArrayList<Integer>();
+            for (ExecutorDetails executorDetails : currentVictimExecutors) {
+                currentVictimTasks.add(executorDetails.getStartTask());
+                currentVictimTasks.add(executorDetails.getEndTask());
+            }
 
-for (Map.Entry<WorkerSlot, ArrayList<ExecutorDetails>> topologyEntry : victimSchedule.entrySet()) {
-    if (cluster.getUsedSlots().contains(topologyEntry.getKey())) {
-        cluster.freeSlot(topologyEntry.getKey());
-    }
-    cluster.assign(topologyEntry.getKey(), victim.getId(), topologyEntry.getValue());
-}
-// victimID = new String();
-victims.remove((victim.getId()));
-writeToFile(flatline_log, "Removed " + victim.getId() + "from victim \n");
+            previousVictimExecutors.removeAll(currentVictimExecutors);
+            previousVictimTasks.removeAll(currentVictimTasks);
 
+            for (Map.Entry<WorkerSlot, ArrayList<ExecutorDetails>> topologyEntry : victimSchedule.entrySet()) {
+
+                for (Integer removedTasks : previousVictimTasks) {
+
+                    ArrayList<ExecutorDetails> oldExecutors = topologyEntry.getValue();
+                    Iterator iterator = oldExecutors.iterator();
+
+                    while (iterator.hasNext()) {
+                        ExecutorDetails oldExecutor = (ExecutorDetails) iterator.next();
+                        if (removedTasks == oldExecutor.getStartTask()) {
+                            otherTaskofVictimExecutor.add(oldExecutor.getEndTask());
+                            iterator.remove();
+                        } else if (removedTasks == oldExecutor.getEndTask()) {
+                            otherTaskofVictimExecutor.add(oldExecutor.getStartTask());
+                            iterator.remove();
+                        }
+                    }
+                    victimSchedule.put(topologyEntry.getKey(), oldExecutors);
+                }
+            }
+
+            for (Map.Entry<ExecutorDetails, WorkerSlot> topologyEntry : currentVictimAssignment.getExecutorToSlot().entrySet()) {
+                for (Integer taskToAddBack : otherTaskofVictimExecutor) {
+                    if (taskToAddBack == topologyEntry.getKey().getStartTask() || taskToAddBack == topologyEntry.getKey().getEndTask()) {
+                        victimSchedule.get(victimSlot).add(topologyEntry.getKey());
+                    }
+                }
+            }
+        }
+
+        for (Map.Entry<WorkerSlot, ArrayList<ExecutorDetails>> topologyEntry : victimSchedule.entrySet()) {
+            if (cluster.getUsedSlots().contains(topologyEntry.getKey())) {
+                cluster.freeSlot(topologyEntry.getKey());
+            }
+            cluster.assign(topologyEntry.getKey(), victim.getId(), topologyEntry.getValue());
+        }
+        // victimID = new String();
+        victims.remove((victim.getId()));
+        writeToFile(flatline_log, "Removed " + victim.getId() + "from victim \n");
     }
 
     public void writeToFile(File file, String data) {

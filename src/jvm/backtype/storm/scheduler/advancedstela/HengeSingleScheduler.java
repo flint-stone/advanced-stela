@@ -1,21 +1,40 @@
 package backtype.storm.scheduler.advancedstela;
 
-import backtype.storm.generated.ExecutorSummary;
-import backtype.storm.scheduler.*;
-import backtype.storm.scheduler.advancedstela.etp.*;
-import backtype.storm.scheduler.advancedstela.slo.Observer;
-import backtype.storm.scheduler.advancedstela.slo.TopologyPairs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
-public class AdvancedStelaScheduler implements IScheduler {
-    private static final Logger LOG = LoggerFactory.getLogger(AdvancedStelaScheduler.class);
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import backtype.storm.generated.ExecutorSummary;
+import backtype.storm.scheduler.Cluster;
+import backtype.storm.scheduler.ExecutorDetails;
+import backtype.storm.scheduler.IScheduler;
+import backtype.storm.scheduler.SchedulerAssignment;
+import backtype.storm.scheduler.Topologies;
+import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.WorkerSlot;
+import backtype.storm.scheduler.advancedstela.etp.GlobalState;
+import backtype.storm.scheduler.advancedstela.etp.GlobalStatistics;
+import backtype.storm.scheduler.advancedstela.etp.TopologySchedule;
+import backtype.storm.scheduler.advancedstela.etp.selector.Selector;
+import backtype.storm.scheduler.advancedstela.etp.selector.SinglePairSelector;
+import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ExecutorPair;
+import backtype.storm.scheduler.advancedstela.slo.Observer;
+import backtype.storm.scheduler.advancedstela.slo.TopologyPairs;
+
+public class HengeSingleScheduler implements IScheduler {
+    private static final Logger LOG = LoggerFactory.getLogger(HengeSingleScheduler.class);
     private static final Integer OBSERVER_RUN_INTERVAL = 30;
 
     @SuppressWarnings("rawtypes")
@@ -39,7 +58,7 @@ public class AdvancedStelaScheduler implements IScheduler {
         sloObserver = new Observer(conf);
         globalState = new GlobalState(conf);
         globalStatistics = new GlobalStatistics(conf);
-        selector = new Selector();
+        selector = new SinglePairSelector();
         victims = new HashMap<String, ExecutorPair>();
         targets = new HashMap<String, ExecutorPair>();
 
@@ -109,15 +128,18 @@ public class AdvancedStelaScheduler implements IScheduler {
                 TopologySchedule targetSchedule = globalState.getTopologySchedules().get(receiver);
                 TopologyDetails victim = topologies.getById(giver);
                 TopologySchedule victimSchedule = globalState.getTopologySchedules().get(giver);
-                ExecutorPair executorSummaries =
-                        selector.selectPair(globalState, globalStatistics, receiver, giver);
+                ArrayList<String> receiverlist = new ArrayList<String>();
+                ArrayList<String> giverlist = new ArrayList<String>();
+                receiverlist.add(receiver);
+                giverlist.add(giver);
+                ArrayList<ExecutorPair> executorSummaries = selector.selectPairs(globalState, globalStatistics, receiverlist, giverlist, sloObserver);
 
-                if (executorSummaries.bothPopulated()) {
+                if (executorSummaries.get(0).bothPopulated()) {
 
                     writeToFile(flatline_log, "Trying to rebalance\n");
                     writeToFile(flatline_log, "victim: "+victim.getId()+"\n");
                     writeToFile(flatline_log, "target: "+target.getId() + "\n");
-                    rebalanceTwoTopologies(target, targetSchedule, victim, victimSchedule, executorSummaries);
+                    rebalanceTwoTopologies(target, targetSchedule, victim, victimSchedule, executorSummaries.get(0));
                 } else {
                     writeToFile(flatline_log, "Cannot find 2 pairs of executor summaries - BOO\n");
                 }

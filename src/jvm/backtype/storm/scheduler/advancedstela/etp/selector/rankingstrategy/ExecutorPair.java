@@ -1,4 +1,4 @@
-package backtype.storm.scheduler.advancedstela.etp;
+package backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy;
 
 
 import backtype.storm.generated.ExecutorSummary;

@@ -127,5 +127,29 @@ public class ETPFluidPredictionStrategy implements RankingStrategy {
         return resultComponents;
     }
 
+	public TreeMap<String, Double> getExpectedEmitRates() {
+		return expectedEmitRates;
+	}
+
+	public void setExpectedEmitRates(TreeMap<String, Double> expectedEmitRates) {
+		this.expectedEmitRates = expectedEmitRates;
+	}
+
+	public TreeMap<String, Double> getExpectedExecutedRates() {
+		return expectedExecutedRates;
+	}
+
+	public void setExpectedExecutedRates(TreeMap<String, Double> expectedExecutedRates) {
+		this.expectedExecutedRates = expectedExecutedRates;
+	}
+
+	public HashMap<Component, Double> getCongestionMap() {
+		return congestionMap;
+	}
+
+	public void setCongestionMap(HashMap<Component, Double> congestionMap) {
+		this.congestionMap = congestionMap;
+	}
+
 	
 }

@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Map;
 
 public class GlobalState {
-    private Map config;
+
+
+	private Map config;
     private NimbusClient nimbusClient;
     private static final Logger LOG = LoggerFactory.getLogger(GlobalState.class);
  //   private File parallelism_hints;
@@ -252,5 +254,41 @@ public class GlobalState {
             LOG.info("error! writing to file {}", ex);
         }
     }
+
+	public Map getConfig() {
+		return config;
+	}
+
+	public void setConfig(Map config) {
+		this.config = config;
+	}
+
+	public NimbusClient getNimbusClient() {
+		return nimbusClient;
+	}
+
+	public void setNimbusClient(NimbusClient nimbusClient) {
+		this.nimbusClient = nimbusClient;
+	}
+
+	public File getAdvanced_scheduling_log() {
+		return advanced_scheduling_log;
+	}
+
+	public void setAdvanced_scheduling_log(File advanced_scheduling_log) {
+		this.advanced_scheduling_log = advanced_scheduling_log;
+	}
+
+	public static Logger getLog() {
+		return LOG;
+	}
+
+	public void setTopologySchedules(HashMap<String, TopologySchedule> topologySchedules) {
+		this.topologySchedules = topologySchedules;
+	}
+
+	public void setSupervisorToNode(HashMap<String, Node> supervisorToNode) {
+		this.supervisorToNode = supervisorToNode;
+	}
 
 }

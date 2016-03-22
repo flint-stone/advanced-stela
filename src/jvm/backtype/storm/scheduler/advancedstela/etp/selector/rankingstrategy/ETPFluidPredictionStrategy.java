@@ -27,18 +27,13 @@ public class ETPFluidPredictionStrategy implements RankingStrategy {
     private HashMap<Component, Double> topologyETPMap;
 
 
-    public ETPFluidPredictionStrategy(TopologySchedule tS, TopologyStatistics tStats) {
-        id = tS.getId();
-        topologySchedule = tS;
-        topologyStatistics = tStats;
-        componentEmitRates = new HashMap<String, Double>();
-        componentExecuteRates = new HashMap<String, Double>();
-        parallelism = new HashMap<String, Integer>();
-        congestionMap = new HashMap<Component, Double>();
-        expectedEmitRates = new TreeMap<String, Double>();
-        expectedExecutedRates = new TreeMap<String, Double>();
-        sourceList = new ArrayList<Component>();
-        topologyETPMap = new HashMap<Component, Double>();
+    public ETPFluidPredictionStrategy(TreeMap<String, Double> expectedEmitRates2, TreeMap<String, Double> expectedExecutedRates2, ArrayList<Component> sourceList2, TopologySchedule tS) {
+    	topologySchedule = tS;
+    	expectedEmitRates = expectedEmitRates2;
+    	expectedExecutedRates = expectedExecutedRates2;
+    	congestionMap = new HashMap<Component, Double>();
+    	sourceList = sourceList2;
+    	topologyETPMap = new HashMap<Component, Double>();
     }
 
     /* (non-Javadoc)
@@ -46,7 +41,7 @@ public class ETPFluidPredictionStrategy implements RankingStrategy {
 	 */
     @Override
 	public ArrayList<ResultComponent> executorRankDescending() {
-        ETPCalculation.collectRates(topologySchedule, topologyStatistics, componentEmitRates, componentExecuteRates, parallelism, expectedEmitRates, expectedExecutedRates, sourceList); 
+        //ETPCalculation.collectRates(topologySchedule, topologyStatistics, componentEmitRates, componentExecuteRates, parallelism, expectedEmitRates, expectedExecutedRates, sourceList); 
         ETPCalculation.congestionDetection(topologySchedule, expectedExecutedRates, expectedEmitRates, congestionMap);
 
         Double totalThroughput = 0.0;

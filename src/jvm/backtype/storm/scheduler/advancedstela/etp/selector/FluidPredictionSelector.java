@@ -12,6 +12,7 @@ import backtype.storm.scheduler.advancedstela.etp.GlobalState;
 import backtype.storm.scheduler.advancedstela.etp.GlobalStatistics;
 import backtype.storm.scheduler.advancedstela.etp.TopologySchedule;
 import backtype.storm.scheduler.advancedstela.etp.TopologyStatistics;
+import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ETPCalculation;
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ETPFluidPredictionStrategy;
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ExecutorPair;
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.RankingStrategy;
@@ -23,9 +24,12 @@ public class FluidPredictionSelector implements Selector {
 	private HashMap<String, TopologyStatistics> sbTopoStats;
 	ArrayList<String> sbTargets;
 	ArrayList<String> sbVictims;
+	ArrayList<String> sbAllComps;
 	private HashMap<String, TreeMap<String, Double> > sbTopoEmitRates;
 	private HashMap<String, TreeMap<String, Double> > sbTopoExecRates;
 	private HashMap<String, HashMap<Component, Double>> sbCongestionMap;
+	private HashMap<String, HashMap<String, Integer>> sbParaMap;
+	private HashMap<String, ArrayList<Component>> sourceListMap;
 	@Override
 	public ArrayList<ExecutorPair> selectPairs(GlobalState globalState, GlobalStatistics globalStatistics, ArrayList<String> targetIDs, ArrayList<String> victimIDs, Observer sloObserver){
         //deep copy globalstatistics and globalstate
@@ -38,18 +42,48 @@ public class FluidPredictionSelector implements Selector {
         sbVictims = new ArrayList<String>();
         sbTargets.addAll(sbTargets); 
         sbVictims.addAll(sbVictims);
+        sbAllComps = new ArrayList<String>();
+        sbAllComps.addAll(sbVictims);
+        sbAllComps.addAll(sbTargets);
+        
+        
+        sbTopoEmitRates = new HashMap<String, TreeMap<String, Double> >();
+    	sbTopoExecRates = new HashMap<String, TreeMap<String, Double> >();
+    	sbCongestionMap = new HashMap<String, HashMap<Component, Double>>();
+    	sbParaMap = new HashMap<String, HashMap<String, Integer>>();
+    	sourceListMap = new HashMap<String, ArrayList<Component>>();
+        
+        //initialize ETP Component
+        
+        //initialize target schedule and statistics
+        for(int i=0; i<sbAllComps.size();i++){
+        	TopologySchedule targetSchedule = this.sbTopoScheds.get(sbTargets.get(i));
+            TopologyStatistics targetStatistics = this.sbTopoStats.get(sbTargets.get(i));  
+            HashMap<String, Double> componentEmitRates = new HashMap<String, Double>();
+            HashMap<String, Double> componentExecuteRates = new HashMap<String, Double>();
+            TreeMap<String, Double> expectedEmitRates = new TreeMap<String, Double>();
+            TreeMap<String, Double> expectedExecutedRates = new TreeMap<String, Double>();
+            HashMap<String, Integer> parallelism = new HashMap<String, Integer>();
+            ArrayList<Component> sourceList = new ArrayList<Component>();
+            ETPCalculation.collectRates(targetSchedule, targetStatistics, componentEmitRates, componentExecuteRates, parallelism, expectedEmitRates, expectedExecutedRates, sourceList); 
+            this.sbTopoEmitRates.put(targetSchedule.getId(), expectedEmitRates);
+            this.sbTopoExecRates.put(targetSchedule.getId(), expectedExecutedRates);
+            this.sourceListMap.put(targetSchedule.getId(), sourceList);
+            this.sbParaMap.put(targetSchedule.getId(), parallelism);
+        }
         
         //sandboxing stage start
-        ArrayList<ExecutorPair> currentPair = new ArrayList<ExecutorPair>();
+        ArrayList<ExecutorPair> pairs = new ArrayList<ExecutorPair>();
         ExecutorPair currPair;
         //RankingStrategy victimStrategy = new ETPFluidPredictionStrategy(victimSchedule, victimStatistics);
         int count = 0;
         while(sbTargets.size()>0 && sbVictims.size()>0 && count<5){
         	currPair = sandbox();
+        	pairs.add(currPair);
         }
        
          //ArrayList<ResultComponent> targetComponent = new ArrayList<ResultComponent>();
-        
+        return pairs;
     }
 
 	private ExecutorPair sandbox() {
@@ -59,14 +93,20 @@ public class FluidPredictionSelector implements Selector {
 		ArrayList<ResultComponent> targetCompRank = new ArrayList<ResultComponent>();
 
 		for(int i=0; i<sbTargets.size();i++){
-        	TopologySchedule targetSchedule = this.sbTopoScheds.get(sbTargets.get(i));
-            TopologyStatistics targetStatistics = this.sbTopoStats.get(sbTargets.get(i));  
-            //ETPFluidPredictionStrategy perTopoTargetStrategy = new ETPFluidPredictionStrategy(targetSchedule, targetStatistics);
+        	//TopologySchedule targetSchedule = this.sbTopoScheds.get(sbTargets.get(i));
+            //TopologyStatistics targetStatistics = this.sbTopoStats.get(sbTargets.get(i)); 
+			TreeMap<String, Double> expectedEmitRates = this.sbTopoEmitRates.get(sbTargets.get(i));
+            TreeMap<String, Double> expectedExecutedRates = this.sbTopoExecRates.get(sbTargets.get(i));
+            
+			//this.sbTopoEmitRates.put(targetSchedule.getId(), expectedEmitRates);
+            //this.sbTopoExecRates.put(targetSchedule.getId(), expectedExecutedRates);
+            ETPFluidPredictionStrategy perTopoTargetStrategy = new ETPFluidPredictionStrategy(expectedEmitRates, expectedExecutedRates, source);
+            //initialize with exec, emit rate
             ArrayList<ResultComponent> perTopoRankTargetComponents = perTopoTargetStrategy.executorRankDescending();
             targetCompRank.addAll(perTopoRankTargetComponents);
-            this.sbTopoExecRates.put(sbTargets.get(i), new TreeMap<String, Double>(perTopoTargetStrategy.getExpectedExecutedRates()));
-            this.sbTopoEmitRates.put(sbTargets.get(i), new TreeMap<String, Double>(perTopoTargetStrategy.getExpectedEmitRates()));
-            this.sbCongestionMap.put(sbTargets.get(i), new HashMap<Component, Double>(perTopoTargetStrategy.getCongestionMap()));
+            //this.sbTopoExecRates.put(sbTargets.get(i), new TreeMap<String, Double>(perTopoTargetStrategy.getExpectedExecutedRates()));
+            //this.sbTopoEmitRates.put(sbTargets.get(i), new TreeMap<String, Double>(perTopoTargetStrategy.getExpectedEmitRates()));
+            //this.sbCongestionMap.put(sbTargets.get(i), new HashMap<Component, Double>(perTopoTargetStrategy.getCongestionMap()));
         }
 		Collections.sort(targetCompRank);
 		
@@ -97,8 +137,23 @@ public class FluidPredictionSelector implements Selector {
 
                         if (victimSummary.get_host().equals(targetSummary.get_host())) {
                             ExecutorPair ret = new ExecutorPair(targetSummary, victimSummary);
+                            //-----------1. Sandboxing new statistics----------------//
                             updateStatistics(targetSummary, targetComponent, victimSummary, victimComponent); //update execution speed and transfer speed 
-                            updateETP(targetSummary, victimSummary); // recalculate ETP
+                            
+                            //-----------2. Update ETP Map base on new stats----------------//
+                            HashMap<Component, Double> victimETPMap = updateETP(victimComponent); // recalculate ETP
+                            HashMap<Component, Double> targetETPMap = updateETP(targetComponent); // recalculate ETP
+                            //sort these ETP Maps
+                            //victim:
+                            ArrayList<ResultComponent> resultComponents = new ArrayList<ResultComponent>();
+                            for (Component component: topologyETPMap.keySet()) {
+                                resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), targetComponent.topologyID, "ED-JD"));
+                            }
+
+                            Collections.sort(resultComponents, Collections.reverseOrder());
+                            return resultComponents;
+                            
+                            //-----------3. Update Juics base on new stats----------------//
                             updateJuice(targetSummary, victimSummary); // recalculate Juice
                         	return ret;
                         }
@@ -119,6 +174,10 @@ public class FluidPredictionSelector implements Selector {
 		Double increaseRate = increaseParallelism(targetComponent);//Update exec speed and emit speed
 		//travserse all its children
 		recursiveUpdate(targetComponent.topologyID, targetComponent.component.getId(), increaseRate);		
+		//resolve victim next, victim reduce parallelism by 1	
+		Double decreaseRate = decreaseParallelism(targetComponent);//Update exec speed and emit speed
+		//travserse all its children
+		recursiveUpdate(targetComponent.topologyID, targetComponent.component.getId(), decreaseRate);
 	}
 
 	private void recursiveUpdate(String topologyID, String compID, Double rate) {
@@ -134,7 +193,7 @@ public class FluidPredictionSelector implements Selector {
 				Double currentExecRate = this.sbTopoExecRates.get(topologyID).get(childID);
 				Double currentEmitRate = this.sbTopoEmitRates.get(topologyID).get(childID);
 				this.sbTopoExecRates.get(topologyID).put(childID, currentExecRate*rate);
-				this.sbTopoEmitRates.get(topologyID).put(childID, currentExecRate*rate);
+				this.sbTopoEmitRates.get(topologyID).put(childID, currentEmitRate*rate);
 				Component child = this.sbTopoScheds.get(topologyID).getComponents().get(childID);
 				recursiveUpdate(topologyID, childID, rate);
 			}
@@ -174,9 +233,41 @@ public class FluidPredictionSelector implements Selector {
         return (double) ((oldpara-1)/oldpara);
 	}
 
-	private void updateETP(ExecutorSummary targetSummary, ExecutorSummary victimSummary) {
+	private HashMap<Component, Double> updateETP(ResultComponent targetComponent) {
 		// TODO Auto-generated method stub
+		//recalculate ETP
+		TopologySchedule topologySchedule = this.sbTopoScheds.get(targetComponent.topologyID);
+		HashMap<Component, Double> topologyETPMap = new HashMap<Component, Double>();
+		ETPCalculation.congestionDetection(topologySchedule, this.sbTopoExecRates.get(targetComponent.topologyID), this.sbTopoEmitRates.get(targetComponent.topologyID), this.sbCongestionMap.get(targetComponent.topologyID));
+		TreeMap<String, Double> expectedEmitRates = this.sbTopoEmitRates.get(targetComponent.topologyID);
 		
+        Double totalThroughput = 0.0;
+        for (Component component: topologySchedule.getComponents().values()) {
+            if (component.getChildren().size() == 0) {
+                totalThroughput += expectedEmitRates.get(component.getId());
+            }
+        }
+
+        /*if (totalThroughput == 0.0) {
+            LOG.info("Nothing to do as throughput is 0.");
+            new TreeMap<>();
+        }*/
+
+        HashMap<String, Double> sinksMap = new HashMap<String, Double>();
+        for (Component component: topologySchedule.getComponents().values()) {
+            if (component.getChildren().size() == 0) {
+                Double throughputOfSink = expectedEmitRates.get(component.getId());
+                sinksMap.put(component.getId(), throughputOfSink / totalThroughput);
+            }
+        }
+
+        for (Component component : topologySchedule.getComponents().values()) {
+            Double score = ETPCalculation.etpCalculation(topologySchedule, component, sinksMap, this.sbCongestionMap.get(targetComponent.topologyID));
+            topologyETPMap.put(component, score);
+        }
+
+        return topologyETPMap;
+        
 	}
 	
 	private void updateJuice(ExecutorSummary targetSummary, ExecutorSummary victimSummary) {

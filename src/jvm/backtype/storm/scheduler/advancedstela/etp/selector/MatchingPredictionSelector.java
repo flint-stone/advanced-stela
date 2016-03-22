@@ -18,7 +18,7 @@ import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.Execu
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.RankingStrategy;
 import backtype.storm.scheduler.advancedstela.slo.Observer;
 
-public class FluidPredictionSelector implements Selector {
+public class MatchingPredictionSelector implements Selector {
 
 	private HashMap<String, TopologySchedule> sbTopoScheds;
 	private HashMap<String, TopologyStatistics> sbTopoStats;
@@ -138,6 +138,7 @@ public class FluidPredictionSelector implements Selector {
                 }
             }
         }
+		return null;
 		
 		
 	}

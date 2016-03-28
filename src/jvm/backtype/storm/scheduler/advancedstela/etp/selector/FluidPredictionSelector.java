@@ -15,7 +15,7 @@ import backtype.storm.scheduler.advancedstela.etp.TopologyStatistics;
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ETPCalculation;
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ETPFluidPredictionStrategy;
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ExecutorPair;
-import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.RankingStrategy;
+import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.JuiceUpdater;
 import backtype.storm.scheduler.advancedstela.slo.Observer;
 
 public class FluidPredictionSelector implements Selector {
@@ -30,6 +30,7 @@ public class FluidPredictionSelector implements Selector {
 	private HashMap<String, HashMap<Component, Double>> sbCongestionMap;
 	private HashMap<String, HashMap<String, Integer>> sbParaMap;
 	private HashMap<String, ArrayList<Component>> sourceListMap;
+	private HashMap<String, Double> juiceMap;
 	@Override
 	public ArrayList<ExecutorPair> selectPairs(GlobalState globalState, GlobalStatistics globalStatistics, ArrayList<String> targetIDs, ArrayList<String> victimIDs, Observer sloObserver){
         //deep copy globalstatistics and globalstate
@@ -130,7 +131,8 @@ public class FluidPredictionSelector implements Selector {
                             ExecutorPair ret = new ExecutorPair(targetSummary, victimSummary);
                             //-----------update statistics----------------//
                             updateStatistics(targetSummary, targetComponent, victimSummary, victimComponent); //update execution speed and transfer speed                            
-                            //updateJuice(targetSummary, victimSummary); // recalculate Juice
+                            updateJuice(targetSummary, targetComponent, victimSummary, victimComponent); // recalculate Juice
+                            //JuiceUpdater.juiceUpadate(sbTopoScheds.get(targetComponent.topologyID), expectedEmitRate, sbTopoExecRates.get(key), sourceList)
                         	return ret;
                         }
 
@@ -138,11 +140,21 @@ public class FluidPredictionSelector implements Selector {
                 }
             }
         }
+		
+		//update the Juice information so the list can be resorted.
+		
 		return null;
 		
 	}
 
 	
+
+	private void updateJuice(ExecutorSummary targetSummary, ResultComponent targetComponent, ExecutorSummary victimSummary, ResultComponent victimComponent) {
+		// TODO Auto-generated method stub
+		Double targetJuice = JuiceUpdater.juiceUpadate(sbTopoScheds.get(targetComponent.topologyID), sbTopoEmitRates.get(targetComponent.topologyID), sbTopoExecRates.get(targetComponent.topologyID), sourceListMap.get(sbTopoExecRates.get(targetComponent.topologyID))); 
+		Double victimJuice = JuiceUpdater.juiceUpadate(sbTopoScheds.get(victimComponent.topologyID), sbTopoEmitRates.get(victimComponent.topologyID), sbTopoExecRates.get(victimComponent.topologyID), sourceListMap.get(sbTopoExecRates.get(victimComponent.topologyID)));
+		
+	}
 
 	private void updateStatistics(ExecutorSummary targetSummary, ResultComponent targetComponent, ExecutorSummary victimSummary, ResultComponent victimComponent) {
 		// TODO Auto-generated method stub
@@ -210,10 +222,7 @@ public class FluidPredictionSelector implements Selector {
 	}
 
 	
-	private void updateJuice(ExecutorSummary targetSummary, ExecutorSummary victimSummary) {
-		// TODO Auto-generated method stub
-		
-	}
+	
 
     
 }

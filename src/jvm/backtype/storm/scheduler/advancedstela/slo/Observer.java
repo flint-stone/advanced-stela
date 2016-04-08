@@ -322,4 +322,12 @@ public class Observer {
     {
         topologies.updateLastRebalancedTime(topologyId, time);
     }
+
+	public Topologies getTopologies() {
+		return topologies;
+	}
+
+	public void setTopologies(Topologies topologies) {
+		this.topologies = topologies;
+	}
 }

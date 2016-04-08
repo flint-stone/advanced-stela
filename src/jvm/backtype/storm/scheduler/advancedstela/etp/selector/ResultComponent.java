@@ -7,12 +7,14 @@ public class ResultComponent implements Comparable<ResultComponent>{
     public Double etpValue;
     public String topologyID;
     public String comparator;
+    public Double juiceDist;
 
-    public ResultComponent(Component comp, Double value, String topologyID, String comparator) {
+    public ResultComponent(Component comp, Double value, String topologyID, String comparator, Double juiceDist) {
         this.component = comp;
         this.etpValue = value;
         this.topologyID = topologyID;
         this.comparator = comparator;
+        this.juiceDist = juiceDist;
     }
 
     @Override
@@ -122,6 +124,6 @@ public class ResultComponent implements Comparable<ResultComponent>{
 	
 	private Double getJuiceDistance() {
 		// TODO Auto-generated method stub
-		return null;
+		return this.juiceDist;
 	}
 }

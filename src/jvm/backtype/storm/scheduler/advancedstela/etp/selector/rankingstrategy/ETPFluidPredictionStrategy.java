@@ -25,15 +25,17 @@ public class ETPFluidPredictionStrategy implements RankingStrategy {
     private ArrayList<Component> sourceList;
     private HashMap<Component, Double> congestionMap;
     private HashMap<Component, Double> topologyETPMap;
+    HashMap<String, Double> sbJuiceDistMap;
 
 
-    public ETPFluidPredictionStrategy(TreeMap<String, Double> expectedEmitRates2, TreeMap<String, Double> expectedExecutedRates2, ArrayList<Component> sourceList2, TopologySchedule tS) {
+    public ETPFluidPredictionStrategy(TreeMap<String, Double> expectedEmitRates2, TreeMap<String, Double> expectedExecutedRates2, ArrayList<Component> sourceList2, TopologySchedule tS, HashMap<String, Double> sbJuiceDistMap) {
     	topologySchedule = tS;
     	expectedEmitRates = expectedEmitRates2;
     	expectedExecutedRates = expectedExecutedRates2;
     	congestionMap = new HashMap<Component, Double>();
     	sourceList = sourceList2;
     	topologyETPMap = new HashMap<Component, Double>();
+    	this.sbJuiceDistMap = sbJuiceDistMap;
     }
 
     /* (non-Javadoc)
@@ -71,7 +73,7 @@ public class ETPFluidPredictionStrategy implements RankingStrategy {
 
         ArrayList<ResultComponent> resultComponents = new ArrayList<ResultComponent>();
         for (Component component: topologyETPMap.keySet()) {
-            resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "ED-JD"));
+            resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "ED-JD", this.sbJuiceDistMap.get(topologySchedule.getId())));
         }
 
         Collections.sort(resultComponents, Collections.reverseOrder());
@@ -115,7 +117,7 @@ public class ETPFluidPredictionStrategy implements RankingStrategy {
 
         ArrayList<ResultComponent> resultComponents = new ArrayList<ResultComponent>();
         for (Component component: topologyETPMap.keySet()) {
-            resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "EA-JD"));
+            resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "EA-JD", this.sbJuiceDistMap.get(topologySchedule.getId())));
         }
 
         Collections.sort(resultComponents);

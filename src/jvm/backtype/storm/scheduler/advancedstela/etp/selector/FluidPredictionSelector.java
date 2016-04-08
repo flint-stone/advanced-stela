@@ -30,15 +30,19 @@ public class FluidPredictionSelector implements Selector {
 	private HashMap<String, HashMap<Component, Double>> sbCongestionMap;
 	private HashMap<String, HashMap<String, Integer>> sbParaMap;
 	private HashMap<String, ArrayList<Component>> sourceListMap;
-	private HashMap<String, Double> juiceMap;
+	private HashMap<String, Double> sbJuiceDistMap;
+	private HashMap<String, Double> sloMap;
+	private Observer observer;
 	@Override
 	public ArrayList<ExecutorPair> selectPairs(GlobalState globalState, GlobalStatistics globalStatistics, ArrayList<String> targetIDs, ArrayList<String> victimIDs, Observer sloObserver){
         //deep copy globalstatistics and globalstate
         //GlobalState sbState = new GlobalState(globalState.getConfig(), snimbusClient, File advanced_scheduling_log, HashMap<String, TopologySchedule> topologySchedules, HashMap<String, Node> supervisorToNode)
         sbTopoScheds = new HashMap<String, TopologySchedule>();
         sbTopoStats = new HashMap<String, TopologyStatistics>();
+        sloMap = new HashMap<String, Double>();
         this.sbTopoScheds.putAll(globalState.getTopologySchedules());
         this.sbTopoStats.putAll(globalStatistics.getTopologyStatistics());
+        this.observer = sloObserver;
         sbTargets = new ArrayList<String>();
         sbVictims = new ArrayList<String>();
         sbTargets.addAll(sbTargets); 
@@ -53,6 +57,7 @@ public class FluidPredictionSelector implements Selector {
     	sbCongestionMap = new HashMap<String, HashMap<Component, Double>>();
     	sbParaMap = new HashMap<String, HashMap<String, Integer>>();
     	sourceListMap = new HashMap<String, ArrayList<Component>>();
+    	sbJuiceDistMap = new HashMap<String, Double>();
         
         //initialize ETP Component
         
@@ -71,6 +76,13 @@ public class FluidPredictionSelector implements Selector {
             this.sbTopoExecRates.put(targetSchedule.getId(), expectedExecutedRates);
             this.sourceListMap.put(targetSchedule.getId(), sourceList);
             this.sbParaMap.put(targetSchedule.getId(), parallelism);
+        }
+        
+        //initialize juice-slo distance
+        
+        for (String topo : sbTopoScheds.keySet()){
+        	sloMap.put(topo, this.observer.getTopologies().getStelaTopologies().get(topo).getUserSpecifiedSLO());
+        	this.sbJuiceDistMap.put(topo, Math.abs(JuiceUpdater.juiceUpadate(sbTopoScheds.get(topo), sbTopoEmitRates.get(topo), sbTopoExecRates.get(topo), sourceListMap.get(topo))-this.observer.getTopologies().getStelaTopologies().get(topo).getUserSpecifiedSLO()));
         }
         
         //sandboxing stage start
@@ -97,7 +109,7 @@ public class FluidPredictionSelector implements Selector {
 			TreeMap<String, Double> expectedEmitRates = this.sbTopoEmitRates.get(sbTargets.get(i));
             TreeMap<String, Double> expectedExecutedRates = this.sbTopoExecRates.get(sbTargets.get(i));
             TopologySchedule targetSchedule = this.sbTopoScheds.get(sbTargets.get(i));
-            ETPFluidPredictionStrategy perTopoTargetStrategy = new ETPFluidPredictionStrategy(expectedEmitRates, expectedExecutedRates, sourceListMap.get(sbTargets.get(i)), targetSchedule);
+            ETPFluidPredictionStrategy perTopoTargetStrategy = new ETPFluidPredictionStrategy(expectedEmitRates, expectedExecutedRates, sourceListMap.get(sbTargets.get(i)), targetSchedule, sbJuiceDistMap);
             ArrayList<ResultComponent> perTopoRankTargetComponents = perTopoTargetStrategy.executorRankDescending();
             targetCompRank.addAll(perTopoRankTargetComponents);
         }
@@ -112,7 +124,7 @@ public class FluidPredictionSelector implements Selector {
 			TreeMap<String, Double> expectedEmitRates = this.sbTopoEmitRates.get(sbTargets.get(i));
             TreeMap<String, Double> expectedExecutedRates = this.sbTopoExecRates.get(sbTargets.get(i));
             TopologySchedule targetSchedule = this.sbTopoScheds.get(sbTargets.get(i));
-            ETPFluidPredictionStrategy perTopoTargetStrategy = new ETPFluidPredictionStrategy(expectedEmitRates, expectedExecutedRates, sourceListMap.get(sbTargets.get(i)), targetSchedule);
+            ETPFluidPredictionStrategy perTopoTargetStrategy = new ETPFluidPredictionStrategy(expectedEmitRates, expectedExecutedRates, sourceListMap.get(sbTargets.get(i)), targetSchedule, sbJuiceDistMap);
             ArrayList<ResultComponent> perTopoRankTargetComponents = perTopoTargetStrategy.executorRankDescending();
             targetCompRank.addAll(perTopoRankTargetComponents);
         }
@@ -153,8 +165,11 @@ public class FluidPredictionSelector implements Selector {
 		// TODO Auto-generated method stub
 		Double targetJuice = JuiceUpdater.juiceUpadate(sbTopoScheds.get(targetComponent.topologyID), sbTopoEmitRates.get(targetComponent.topologyID), sbTopoExecRates.get(targetComponent.topologyID), sourceListMap.get(sbTopoExecRates.get(targetComponent.topologyID))); 
 		Double victimJuice = JuiceUpdater.juiceUpadate(sbTopoScheds.get(victimComponent.topologyID), sbTopoEmitRates.get(victimComponent.topologyID), sbTopoExecRates.get(victimComponent.topologyID), sourceListMap.get(sbTopoExecRates.get(victimComponent.topologyID)));
-		
+		this.sbJuiceDistMap.put(targetComponent.topologyID, Math.abs(targetJuice-this.sloMap.get(targetComponent.topologyID)));
+		this.sbJuiceDistMap.put(victimComponent.topologyID, Math.abs(victimJuice-this.sloMap.get(victimComponent.topologyID)));		
 	}
+		
+
 
 	private void updateStatistics(ExecutorSummary targetSummary, ResultComponent targetComponent, ExecutorSummary victimSummary, ResultComponent victimComponent) {
 		// TODO Auto-generated method stub

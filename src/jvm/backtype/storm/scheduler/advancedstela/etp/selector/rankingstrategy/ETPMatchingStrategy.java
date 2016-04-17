@@ -11,7 +11,7 @@ import backtype.storm.scheduler.advancedstela.etp.selector.ResultComponent;
 
 import java.util.*;
 
-public class ETPMatchingPredictionStrategy implements RankingStrategy {
+public class ETPMatchingStrategy implements RankingStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(GlobalState.class);
 
     private String id;
@@ -25,20 +25,17 @@ public class ETPMatchingPredictionStrategy implements RankingStrategy {
     private ArrayList<Component> sourceList;
     private HashMap<Component, Double> congestionMap;
     private HashMap<Component, Double> topologyETPMap;
+    HashMap<String, Double> sbJuiceDistMap;
 
 
-    public ETPMatchingPredictionStrategy(TopologySchedule tS, TopologyStatistics tStats) {
-        id = tS.getId();
-        topologySchedule = tS;
-        topologyStatistics = tStats;
-        componentEmitRates = new HashMap<String, Double>();
-        componentExecuteRates = new HashMap<String, Double>();
-        parallelism = new HashMap<String, Integer>();
-        congestionMap = new HashMap<Component, Double>();
-        expectedEmitRates = new TreeMap<String, Double>();
-        expectedExecutedRates = new TreeMap<String, Double>();
-        sourceList = new ArrayList<Component>();
-        topologyETPMap = new HashMap<Component, Double>();
+    public ETPMatchingStrategy(TreeMap<String, Double> expectedEmitRates2, TreeMap<String, Double> expectedExecutedRates2, ArrayList<Component> sourceList2, TopologySchedule tS, HashMap<String, Double> sbJuiceDistMap) {
+    	topologySchedule = tS;
+    	expectedEmitRates = expectedEmitRates2;
+    	expectedExecutedRates = expectedExecutedRates2;
+    	congestionMap = new HashMap<Component, Double>();
+    	sourceList = sourceList2;
+    	topologyETPMap = new HashMap<Component, Double>();
+    	this.sbJuiceDistMap = sbJuiceDistMap;
     }
 
     /* (non-Javadoc)
@@ -46,7 +43,7 @@ public class ETPMatchingPredictionStrategy implements RankingStrategy {
 	 */
     @Override
 	public ArrayList<ResultComponent> executorRankDescending() {
-        ETPCalculation.collectRates(topologySchedule, topologyStatistics, componentEmitRates, componentExecuteRates, parallelism, expectedEmitRates, expectedExecutedRates, sourceList); 
+        //ETPCalculation.collectRates(topologySchedule, topologyStatistics, componentEmitRates, componentExecuteRates, parallelism, expectedEmitRates, expectedExecutedRates, sourceList); 
         ETPCalculation.congestionDetection(topologySchedule, expectedExecutedRates, expectedEmitRates, congestionMap);
 
         Double totalThroughput = 0.0;
@@ -76,7 +73,7 @@ public class ETPMatchingPredictionStrategy implements RankingStrategy {
 
         ArrayList<ResultComponent> resultComponents = new ArrayList<ResultComponent>();
         for (Component component: topologyETPMap.keySet()) {
-            resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "JD-ED"));
+            resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "JD-ED", this.sbJuiceDistMap.get(topologySchedule.getId())));
         }
 
         Collections.sort(resultComponents, Collections.reverseOrder());
@@ -120,7 +117,7 @@ public class ETPMatchingPredictionStrategy implements RankingStrategy {
 
         ArrayList<ResultComponent> resultComponents = new ArrayList<ResultComponent>();
         for (Component component: topologyETPMap.keySet()) {
-        resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "JD-EA"));
+        	resultComponents.add(new ResultComponent(component, topologyETPMap.get(component), id, "JD-EA", this.sbJuiceDistMap.get(topologySchedule.getId())));
         }
 
         Collections.sort(resultComponents);

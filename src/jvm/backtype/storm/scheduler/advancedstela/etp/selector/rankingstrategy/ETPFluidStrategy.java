@@ -11,7 +11,7 @@ import backtype.storm.scheduler.advancedstela.etp.selector.ResultComponent;
 
 import java.util.*;
 
-public class ETPFluidPredictionStrategy implements RankingStrategy {
+public class ETPFluidStrategy implements RankingStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(GlobalState.class);
 
     private String id;
@@ -28,7 +28,7 @@ public class ETPFluidPredictionStrategy implements RankingStrategy {
     HashMap<String, Double> sbJuiceDistMap;
 
 
-    public ETPFluidPredictionStrategy(TreeMap<String, Double> expectedEmitRates2, TreeMap<String, Double> expectedExecutedRates2, ArrayList<Component> sourceList2, TopologySchedule tS, HashMap<String, Double> sbJuiceDistMap) {
+    public ETPFluidStrategy(TreeMap<String, Double> expectedEmitRates2, TreeMap<String, Double> expectedExecutedRates2, ArrayList<Component> sourceList2, TopologySchedule tS, HashMap<String, Double> sbJuiceDistMap) {
     	topologySchedule = tS;
     	expectedEmitRates = expectedEmitRates2;
     	expectedExecutedRates = expectedExecutedRates2;

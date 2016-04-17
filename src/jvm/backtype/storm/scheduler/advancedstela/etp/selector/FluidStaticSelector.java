@@ -18,7 +18,7 @@ import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.Execu
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.JuiceUpdater;
 import backtype.storm.scheduler.advancedstela.slo.Observer;
 
-public class FluidPredictionSelector implements Selector {
+public class FluidStaticSelector implements Selector {
 
 	private HashMap<String, TopologySchedule> sbTopoScheds;
 	private HashMap<String, TopologyStatistics> sbTopoStats;
@@ -27,7 +27,7 @@ public class FluidPredictionSelector implements Selector {
 	ArrayList<String> sbAllComps;
 	private HashMap<String, TreeMap<String, Double> > sbTopoEmitRates;
 	private HashMap<String, TreeMap<String, Double> > sbTopoExecRates;
-	private HashMap<String, HashMap<Component, Double>> sbCongestionMap;// only for constructing target list
+	private HashMap<String, HashMap<Component, Double>> sbCongestionMap;
 	private HashMap<String, HashMap<String, Integer>> sbParaMap;
 	private HashMap<String, ArrayList<Component>> sourceListMap;
 	private HashMap<String, Double> sbJuiceDistMap;
@@ -62,7 +62,7 @@ public class FluidPredictionSelector implements Selector {
         //initialize ETP Component
         
         //initialize target schedule and statistics
-        for(int i=0; i<sbAllComps.size();i++){
+    	for(int i=0; i<sbAllComps.size();i++){
         	TopologySchedule schedule = this.sbTopoScheds.get(sbAllComps.get(i));
             TopologyStatistics statistics = this.sbTopoStats.get(sbAllComps.get(i));  
             HashMap<String, Double> componentEmitRates = new HashMap<String, Double>();
@@ -146,10 +146,10 @@ public class FluidPredictionSelector implements Selector {
 
                         if (victimSummary.get_host().equals(targetSummary.get_host())) {
                             ExecutorPair ret = new ExecutorPair(targetSummary, victimSummary);
-                            //-----------update statistics----------------//
-                            updateStatistics(targetSummary, targetComponent, victimSummary, victimComponent); //update execution speed and transfer speed                            
-                            updateJuice(targetSummary, targetComponent, victimSummary, victimComponent); // recalculate Juice
-                            //JuiceUpdater.juiceUpadate(sbTopoScheds.get(targetComponent.topologyID), expectedEmitRate, sbTopoExecRates.get(key), sourceList)
+                            //Nothing needs to be updated, except moving target/victim out of their list
+                            //Moving target and victim out of their list and resort them
+                            victimCompRank.remove(victimComponent);
+                            targetCompRank.remove(targetComponent);
                         	return ret;
                         }
 
@@ -158,14 +158,10 @@ public class FluidPredictionSelector implements Selector {
             }
         }
 		
-		//update the Juice information so the list can be resorted.
-		
 		return null;
 		
-	}
-
+	}	
 	
-
 	private ArrayList<ResultComponent> filterUncongested(HashMap<Component, Double> congestedMap, ArrayList<ResultComponent> perTopoRankTargetComponents) {
 		// TODO Auto-generated method stub
 		ArrayList<ResultComponent> ret = new ArrayList<ResultComponent>();
@@ -178,84 +174,6 @@ public class FluidPredictionSelector implements Selector {
 		}
 		return ret;
 	}
-
-	private void updateJuice(ExecutorSummary targetSummary, ResultComponent targetComponent, ExecutorSummary victimSummary, ResultComponent victimComponent) {
-		// TODO Auto-generated method stub
-		Double targetJuice = JuiceUpdater.juiceUpadate(sbTopoScheds.get(targetComponent.topologyID), sbTopoEmitRates.get(targetComponent.topologyID), sbTopoExecRates.get(targetComponent.topologyID), sourceListMap.get(sbTopoExecRates.get(targetComponent.topologyID))); 
-		Double victimJuice = JuiceUpdater.juiceUpadate(sbTopoScheds.get(victimComponent.topologyID), sbTopoEmitRates.get(victimComponent.topologyID), sbTopoExecRates.get(victimComponent.topologyID), sourceListMap.get(sbTopoExecRates.get(victimComponent.topologyID)));
-		this.sbJuiceDistMap.put(targetComponent.topologyID, Math.abs(targetJuice-this.sloMap.get(targetComponent.topologyID)));
-		this.sbJuiceDistMap.put(victimComponent.topologyID, Math.abs(victimJuice-this.sloMap.get(victimComponent.topologyID)));		
-	}
-		
-
-
-	private void updateStatistics(ExecutorSummary targetSummary, ResultComponent targetComponent, ExecutorSummary victimSummary, ResultComponent victimComponent) {
-		// TODO Auto-generated method stub
-		//resolve target first, target increase parallelism by 1	
-		Double increaseRate = increaseParallelism(targetComponent);//Update exec speed and emit speed
-		//travserse all its children
-		recursiveUpdate(targetComponent.topologyID, targetComponent.component.getId(), increaseRate);		
-		//resolve victim next, victim reduce parallelism by 1	
-		Double decreaseRate = decreaseParallelism(targetComponent);//Update exec speed and emit speed
-		//travserse all its children
-		recursiveUpdate(targetComponent.topologyID, targetComponent.component.getId(), decreaseRate);
-	}
-
-	private void recursiveUpdate(String topologyID, String compID, Double rate) {
-		// TODO Auto-generated method stub
-		Component component = this.sbTopoScheds.get(topologyID).getComponents().get(compID);
-		for(int i=0; i<component.getChildren().size();i++){
-			String childID = component.getChildren().get(i);
-			//if child was original congested, leave it;
-			if(this.sbCongestionMap.get(topologyID).containsKey(compID)){
-				continue;
-			}
-			else{
-				Double currentExecRate = this.sbTopoExecRates.get(topologyID).get(childID);
-				Double currentEmitRate = this.sbTopoEmitRates.get(topologyID).get(childID);
-				this.sbTopoExecRates.get(topologyID).put(childID, currentExecRate*rate);
-				this.sbTopoEmitRates.get(topologyID).put(childID, currentEmitRate*rate);
-				Component child = this.sbTopoScheds.get(topologyID).getComponents().get(childID);
-				recursiveUpdate(topologyID, childID, rate);
-			}
-		
-			
-		}
-		
-	}
-
-	private Double increaseParallelism(ResultComponent targetComponent) {
-		// TODO Auto-generated method stub
-		Component target = targetComponent.component;
-		int oldpara = target.getParallelism();
-		target.setParallelism(oldpara+1);
-		//update exec Rate
-        Double currentExecRate = this.sbTopoExecRates.get(targetComponent.topologyID).get(targetComponent.component.getId());
-        this.sbTopoExecRates.get(targetComponent.topologyID).put(targetComponent.topologyID, currentExecRate*(oldpara+1)/oldpara);
-        //update emit Rate
-        Double currentEmitRate = this.sbTopoEmitRates.get(targetComponent.topologyID).get(targetComponent.component.getId());
-        this.sbTopoExecRates.get(targetComponent.topologyID).put(targetComponent.topologyID, currentEmitRate*(oldpara+1)/oldpara);
-        
-        return (double) ((oldpara+1)/oldpara);
-	}
-	
-	private Double decreaseParallelism(ResultComponent targetComponent) {
-		// TODO Auto-generated method stub
-		Component target = targetComponent.component;
-		int oldpara = target.getParallelism();
-		target.setParallelism(oldpara-1);
-		//update exec Rate
-        Double currentExecRate = this.sbTopoExecRates.get(targetComponent.topologyID).get(targetComponent.component.getId());
-        this.sbTopoExecRates.get(targetComponent.topologyID).put(targetComponent.topologyID, currentExecRate*(oldpara-1)/oldpara);
-        //update emit Rate
-        Double currentEmitRate = this.sbTopoEmitRates.get(targetComponent.topologyID).get(targetComponent.component.getId());
-        this.sbTopoExecRates.get(targetComponent.topologyID).put(targetComponent.topologyID, currentEmitRate*(oldpara-1)/oldpara);
-        
-        return (double) ((oldpara-1)/oldpara);
-	}
-
-	
-	
 
     
 }

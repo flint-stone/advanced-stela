@@ -16,6 +16,14 @@ public class ResultComponent implements Comparable<ResultComponent>{
         this.comparator = comparator;
         this.juiceDist = juiceDist;
     }
+    
+    public ResultComponent(Component comp, Double value, String topologyID, String comparator) {
+        this.component = comp;
+        this.etpValue = value;
+        this.topologyID = topologyID;
+        this.comparator = comparator;
+        this.juiceDist = -1.0;
+    }
 
     @Override
     public int compareTo(ResultComponent that) {

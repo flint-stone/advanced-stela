@@ -33,8 +33,8 @@ import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.Execu
 import backtype.storm.scheduler.advancedstela.slo.Observer;
 import backtype.storm.scheduler.advancedstela.slo.TopologyPairs;
 
-public class HengeMatchingScheduler implements IScheduler {
-    private static final Logger LOG = LoggerFactory.getLogger(HengeMatchingScheduler.class);
+public class HengeMatchingPredictionScheduler implements IScheduler {
+    private static final Logger LOG = LoggerFactory.getLogger(HengeMatchingPredictionScheduler.class);
     private static final Integer OBSERVER_RUN_INTERVAL = 30;
 
     @SuppressWarnings("rawtypes")

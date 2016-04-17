@@ -27,14 +27,15 @@ import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.advancedstela.etp.GlobalState;
 import backtype.storm.scheduler.advancedstela.etp.GlobalStatistics;
 import backtype.storm.scheduler.advancedstela.etp.TopologySchedule;
+import backtype.storm.scheduler.advancedstela.etp.selector.FluidPredictionSelector;
 import backtype.storm.scheduler.advancedstela.etp.selector.Selector;
 import backtype.storm.scheduler.advancedstela.etp.selector.SinglePairSelector;
 import backtype.storm.scheduler.advancedstela.etp.selector.rankingstrategy.ExecutorPair;
 import backtype.storm.scheduler.advancedstela.slo.Observer;
 import backtype.storm.scheduler.advancedstela.slo.TopologyPairs;
 
-public class HengeFluidScheduler implements IScheduler {
-    private static final Logger LOG = LoggerFactory.getLogger(HengeFluidScheduler.class);
+public class HengeFluidStaticScheduler implements IScheduler {
+    private static final Logger LOG = LoggerFactory.getLogger(HengeFluidStaticScheduler.class);
     private static final Integer OBSERVER_RUN_INTERVAL = 30;
 
     @SuppressWarnings("rawtypes")
@@ -58,7 +59,7 @@ public class HengeFluidScheduler implements IScheduler {
         sloObserver = new Observer(conf);
         globalState = new GlobalState(conf);
         globalStatistics = new GlobalStatistics(conf);
-        selector = new SinglePairSelector();
+        selector = new FluidPredictionSelector();
         victims = new HashMap<String, ExecutorPair>();
         targets = new HashMap<String, ExecutorPair>();
 

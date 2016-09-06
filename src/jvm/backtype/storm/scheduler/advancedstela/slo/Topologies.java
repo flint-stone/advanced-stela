@@ -2,6 +2,7 @@ package backtype.storm.scheduler.advancedstela.slo;
 
 import backtype.storm.Config;
 import backtype.storm.generated.*;
+import backtype.storm.scheduler.advancedstela.etp.GlobalState;
 import backtype.storm.utils.NimbusClient;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -17,6 +18,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class Topologies {
@@ -31,6 +34,7 @@ public class Topologies {
     private File flatline_log;
     private File same_top;
     private int numHosts;
+    private static final Logger LOG = LoggerFactory.getLogger(Topologies.class);
 
     public Topologies(Map conf) {
         config = conf;
@@ -326,6 +330,12 @@ public class Topologies {
         } else {
             for (Map.Entry<String, SpoutSpec> spout : stormTopology.get_spouts().entrySet()) {
                 if (allComponents.containsKey(spout.getKey())) {
+                    if(allComponents == null){
+                        LOG.debug("Caution: topologySchedule is null");
+                    }
+                    if(parallelism_hints == null){
+                        LOG.debug("Caution: parallelism_hints is null");
+                    }
                     allComponents.get(spout.getKey()).updateParallelism(parallelism_hints.get(spout.getKey()));
                 }
             }

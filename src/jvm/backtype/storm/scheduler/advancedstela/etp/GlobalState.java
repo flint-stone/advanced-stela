@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Pack200;
 
 public class GlobalState {
     private static final String ALL_TIME = ":all-time";
@@ -376,6 +377,8 @@ public class GlobalState {
                 parallelism_hints.put(execSummary.get(i).get_component_id(), 1);
         }
 
+        LOG.info("Populated Parallelism Hints Map: {}", parallelism_hints.toString());
+
         if (topologyInfo.get_executors().size() == 0) {
 
             for (Map.Entry<String, SpoutSpec> spout : stormTopology.get_spouts().entrySet()) {
@@ -395,6 +398,16 @@ public class GlobalState {
         } else {
             for (Map.Entry<String, SpoutSpec> spout : stormTopology.get_spouts().entrySet()) {
                 if (!spout.getKey().matches("(__).*")) {
+                    if(topologySchedule == null){
+                        LOG.info("Caution: topologySchedule is null");
+                    }
+                    if(parallelism_hints == null){
+                        LOG.info("Caution: parallelism_hints is null");
+                    }
+                    LOG.info("spout: {}", spout.getKey());
+                    LOG.info("topologySchedule: {}", topologySchedule.toString());
+                    LOG.info("parallelism_hints: {}", parallelism_hints.toString());
+                    LOG.info("parallelism_hints size: {}", parallelism_hints.size());
                     topologySchedule.addComponents(spout.getKey(), new Component(spout.getKey(),
                             parallelism_hints.get(spout.getKey())));
 
@@ -403,6 +416,12 @@ public class GlobalState {
 
             for (Map.Entry<String, Bolt> bolt : stormTopology.get_bolts().entrySet()) {
                 if (!bolt.getKey().matches("(__).*")) {
+                    if(topologySchedule == null){
+                        LOG.debug("Caution: topologySchedule is null");
+                    }
+                    if(parallelism_hints == null){
+                        LOG.debug("Caution: parallelism_hints is null");
+                    }
                     topologySchedule.addComponents(bolt.getKey(), new Component(bolt.getKey(),
                             parallelism_hints.get(bolt.getKey())));
                 }

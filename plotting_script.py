@@ -12,9 +12,9 @@ def is_number(s):
         return False
 
 flag = 0
-for i in os.listdir("/Users/fariakalim/Desktop/Research/Stela++/29thResults/HengeResults/Results/"):
+for i in os.listdir("/home/lexu/workspace/advanced-stela/logs/"):
     if i.endswith(".log") :
-        f = open("/Users/fariakalim/Desktop/Research/Stela++/29thResults/HengeResults/Results/"+i, 'r')
+        f = open("/home/lexu/workspace/advanced-stela/logs/"+i, 'r')
         filename = f.__getattribute__("name").split(".")[0]
         print filename
         topology1 = []
@@ -42,20 +42,20 @@ for i in os.listdir("/Users/fariakalim/Desktop/Research/Stela++/29thResults/Heng
 
                 if "/var/nimbus/storm" not in one_line[0] and len(one_line) > 1:
 
-                    if "production-topology1"  in one_line[0]:
+                    if "production-topology1"  in one_line[0] and len(one_line) == 5:
                         topology1.append(float(one_line[2]))
                         input_at_source_1.append(float(one_line[3]))
                         output_at_sink_1.append(float(one_line[4]))
-                    elif "production-topology2"  in one_line[0]:
+                    elif "production-topology2"  in one_line[0] and len(one_line) == 5:
                         topology2.append(float(one_line[2]))
                         time.append(float(one_line[5]))
                         input_at_source_2.append(float(one_line[3]))
                         output_at_sink_2.append(float(one_line[4]))
-                    elif "production-topology3"  in one_line[0]:
+                    elif "production-topology3"  in one_line[0] and len(one_line) == 5:
                         topology3.append(float(one_line[2]))
                         input_at_source_3.append(float(one_line[3]))
                         output_at_sink_3.append(float(one_line[4]))
-                    elif "production-topology4"  in one_line[0]:
+                    elif "production-topology4"  in one_line[0] and len(one_line) == 5:
                         topology4.append(float(one_line[2]))
                         input_at_source_4.append(float(one_line[3]))
                         output_at_sink_4.append(float(one_line[4]))

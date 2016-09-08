@@ -405,7 +405,8 @@ public class GlobalState {
                         LOG.info("Caution: parallelism_hints is null");
                     }
                     LOG.info("spout: {}", spout.getKey());
-                    LOG.info("topologySchedule: {}", topologySchedule.toString());
+                    LOG.info("topology ID: {}", topologySchedule.getId());
+                    LOG.info("topology Schedule: {}", topologySchedule.getAssignment().toString());
                     LOG.info("parallelism_hints: {}", parallelism_hints.toString());
                     LOG.info("parallelism_hints size: {}", parallelism_hints.size());
                     topologySchedule.addComponents(spout.getKey(), new Component(spout.getKey(),

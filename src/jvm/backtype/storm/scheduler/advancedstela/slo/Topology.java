@@ -1,5 +1,9 @@
 package backtype.storm.scheduler.advancedstela.slo;
 
+import backtype.storm.scheduler.advancedstela.AdvancedStelaScheduler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -10,6 +14,7 @@ import java.util.Queue;
 
 public class Topology implements Comparable<Topology> {
     private static final Integer SLO_WINDOW = 30;
+    private static final Logger LOG = LoggerFactory.getLogger(Topology.class);
 
     private String id;
     private String sensitivity;
@@ -221,7 +226,7 @@ public class Topology implements Comparable<Topology> {
     public int slo_descending(Topology other){
 
         Double slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             slo_perc = Math.abs((userSpecifiedLatencySLO - getAverageLatency())/userSpecifiedLatencySLO);
         }
@@ -231,7 +236,7 @@ public class Topology implements Comparable<Topology> {
         }
 
         Double other_slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             other_slo_perc = Math.abs((other.userSpecifiedLatencySLO - other.getAverageLatency())/other.userSpecifiedLatencySLO);
         }
@@ -247,7 +252,7 @@ public class Topology implements Comparable<Topology> {
 
         Integer my_sens, other_sens;
         Double slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             slo_perc = Math.abs((userSpecifiedLatencySLO - getAverageLatency())/userSpecifiedLatencySLO);
             my_sens = 1;
@@ -259,7 +264,7 @@ public class Topology implements Comparable<Topology> {
         }
 
         Double other_slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             other_slo_perc = Math.abs((other.userSpecifiedLatencySLO - other.getAverageLatency())/other.userSpecifiedLatencySLO);
             other_sens = 1;
@@ -280,7 +285,7 @@ public class Topology implements Comparable<Topology> {
 
         Integer my_sens, other_sens;
         Double slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             slo_perc = Math.abs((userSpecifiedLatencySLO - getAverageLatency())/userSpecifiedLatencySLO);
             my_sens = 1;
@@ -292,7 +297,7 @@ public class Topology implements Comparable<Topology> {
         }
 
         Double other_slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             other_slo_perc = Math.abs((other.userSpecifiedLatencySLO - other.getAverageLatency())/other.userSpecifiedLatencySLO);
             other_sens = 1;
@@ -315,7 +320,7 @@ public class Topology implements Comparable<Topology> {
 
         Integer my_sens, other_sens;
         Double slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             slo_perc = Math.abs((userSpecifiedLatencySLO - getAverageLatency())/userSpecifiedLatencySLO);
             my_sens = 2;
@@ -327,7 +332,7 @@ public class Topology implements Comparable<Topology> {
         }
 
         Double other_slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             other_slo_perc = Math.abs((other.userSpecifiedLatencySLO - other.getAverageLatency())/other.userSpecifiedLatencySLO);
             other_sens = 2;
@@ -348,7 +353,7 @@ public class Topology implements Comparable<Topology> {
 
         Integer my_sens, other_sens;
         Double slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             slo_perc = Math.abs((userSpecifiedLatencySLO - getAverageLatency())/userSpecifiedLatencySLO);
             my_sens = 2;
@@ -360,7 +365,7 @@ public class Topology implements Comparable<Topology> {
         }
 
         Double other_slo_perc = 0.0;
-        if (sensitivity.equals("latency"))
+        if (sensitivity!=null && sensitivity.equals("latency"))
         {
             other_slo_perc = Math.abs((other.userSpecifiedLatencySLO - other.getAverageLatency())/other.userSpecifiedLatencySLO);
             other_sens = 2;
@@ -388,7 +393,7 @@ public class Topology implements Comparable<Topology> {
         writeToFile(same_top, "Topology Measured SLO: " + getMeasuredSLO() + "\n");
         writeToFile(same_top, "Topology Latency SLO: " + userSpecifiedLatencySLO + "\n");
         writeToFile(same_top, "Topology Measured Latency SLO: " + getAverageLatency() + "\n");
-
+        LOG.info("SLO check: Topology: {}, Topology SLO: {}, Topology Measured SLO: {}, Topology Latency SLO {}, Topology Measured Latency SLO: {}", id, userSpecifiedSLO, getMeasuredSLO(), userSpecifiedLatencySLO, getAverageLatency());
         if (sensitivity != null) {
             if (sensitivity.equals("throughput")) {
                 //return (allReadingsViolateSLO()); //
@@ -399,6 +404,9 @@ public class Topology implements Comparable<Topology> {
             }
         }
       //  return (allReadingsViolateSLO());
+        if(getMeasuredSLO()<userSpecifiedSLO){
+            LOG.info("topology id: {} SLO violated", id);
+        }
         return getMeasuredSLO() < userSpecifiedSLO;
 
 

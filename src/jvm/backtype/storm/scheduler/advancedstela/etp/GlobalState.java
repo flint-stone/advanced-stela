@@ -34,6 +34,7 @@ public class GlobalState {
     /* Supervisor to node mapping. */
     private HashMap<String, Node> supervisorToNode;
     private Long lastTime;
+    private SupervisorInfo supervisorInfo;
 
     public GlobalState(Map conf) {
         config = conf;
@@ -102,6 +103,7 @@ public class GlobalState {
                 return;
             }
         }
+      //  supervisorInfo.GetSupervisorInfo(); // TODO later complete implementation :)
         populateNodeToExecutorMapping(cluster);
         populateAssignmentForTopologies(cluster, topologies);
     }

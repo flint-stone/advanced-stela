@@ -169,8 +169,8 @@ public class Topologies {
     private boolean upForMoreThan(String id) {
         Long time = System.currentTimeMillis();
         Long topologyUpAt = topologiesUptime.get(id);
-        return true; // TEMP ONLY
-  //      return ((time - topologyUpAt) / 1000) > UP_TIME;
+        //return true; // TEMP ONLY
+        return ((time - topologyUpAt) / 1000) > UP_TIME;
     }
 
     private Double getUserSpecifiedSLOFromConfig(String id) {
@@ -459,7 +459,7 @@ public class Topologies {
 
         //   System.out.println("In function: ReadFiles()");
 
-        final File folder = new File("/users/kalim2/output/");
+        final File folder = new File("/proj/Stella/logs/");
 
         try {
             for (final File file : folder.listFiles()) {
@@ -523,14 +523,17 @@ public class Topologies {
                         }
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
+                        LOG.info("FileNotFoundException: {}", e.toString());
                     } catch (IOException e) {
                         e.printStackTrace();
+                        LOG.info("IOException: {}", e.toString());
                     } finally {
                         if (br != null) {
                             try {
                                 br.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
+                                LOG.info("IOException: {}", e.toString());
                             }
                         }
                     }

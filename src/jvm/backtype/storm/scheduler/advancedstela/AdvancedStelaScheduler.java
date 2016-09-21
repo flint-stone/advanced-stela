@@ -32,6 +32,7 @@ public class AdvancedStelaScheduler implements IScheduler {
     private HashMap<String, ExecutorPair> targets, victims;
     private File juice_log;
     private File same_top;
+    private int stopFlag;
     // final int numExecutorsExchanged = 1;
 
     public void prepare(@SuppressWarnings("rawtypes") Map conf) {
@@ -44,6 +45,7 @@ public class AdvancedStelaScheduler implements IScheduler {
         selector = new Selector();
         victims = new HashMap<String, ExecutorPair>();
         targets = new HashMap<String, ExecutorPair>();
+        stopFlag = 0;
     }
 
     public void schedule(Topologies topologies, Cluster cluster) {
@@ -145,7 +147,10 @@ public class AdvancedStelaScheduler implements IScheduler {
 
                 if (executorSummaries != null && executorSummaries.bothPopulated()) {
                     LOG.info("target host {} target port {} before rebalance", executorSummaries.getTargetExecutorSummary().get_host(), executorSummaries.getTargetExecutorSummary().get_port());
-                    rebalanceTwoTopologies(target, targetSchedule, victim, victimSchedule, executorSummaries, cluster);
+                   if (stopFlag == 0) {
+                       rebalanceTwoTopologies(target, targetSchedule, victim, victimSchedule, executorSummaries, cluster);
+                       stopFlag = 1;
+                   }
                 }
             } else if (giver_topologies.size() == 0) {
                 StringBuffer sb = new StringBuffer();
